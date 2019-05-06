@@ -422,7 +422,14 @@ int zephir_call_user_function(zval *object_pp, zend_class_entry *obj_ce, zephir_
 	else if (FAILURE == status || EG(exception)) {
 		ZVAL_NULL(retval_ptr);
 	} else if (Z_TYPE_P(retval_ptr) == IS_ARRAY) {
-    	SEPARATE_ARRAY(retval_ptr);
+    	if (EXPECTED(!(GC_FLAGS(Z_ARRVAL_P(retval_ptr)) & IS_ARRAY_IMMUTABLE))) {
+        			if (UNEXPECTED(GC_REFCOUNT(Z_ARR_P(retval_ptr)) > 1)) {
+        				if (Z_REFCOUNTED_P(retval_ptr)) {
+        					GC_DELREF(Z_ARR_P(retval_ptr));
+        				}
+        			}
+        		}
+        		ZVAL_ARR(retval_ptr, zend_array_dup(Z_ARR_P(retval_ptr)));
     }
 
 	return status;
